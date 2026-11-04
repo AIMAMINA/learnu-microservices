@@ -1,0 +1,4 @@
+runtime "python" "3.11.9"
+
+build_command "pip install -r requirements.txt"
+start_command "gunicorn graphql_gateway.wsgi:application"

@@ -1,0 +1,52 @@
+server:
+  port: 8083
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # 🔹 Route GraphQL Django Gateway
+        - id: graphql-service
+          uri: https://graphql-gateway-0djs.onrender.com/graphql
+          predicates:
+            - Path=/graphql/**
+          filters:
+            - StripPrefix=0
+
+        # 🔹 Route Student microservice
+        - id: student-service
+          uri:  https://student-service-kdwq.onrender.com
+          predicates:
+            - Path=/students/**
+          filters:
+            - StripPrefix=0
+
+        # 🔹 Route Course microservice
+        - id: course-service
+          uri: https://course-servicee.onrender.com
+          predicates:
+            - Path=/courses/**
+          filters:
+            - StripPrefix=0
+
+        # 🔹 Université 
+        - id: university-service
+          uri:  https://student-service-kdwq.onrender.com
+          predicates:
+            - Path=/universities/**
+          filters:
+            - StripPrefix=0
+
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:5173"
+              - "https://learnu2.onrender.com"
+              - "https://course-servicee.onrender.com"
+              - "https://graphql-gateway-0djs.onrender.com/graphql"
+              - "https://gateway-service-qxxe.onrender.com"
+            allowedHeaders: "*"
+            allowedMethods: "*"
+            allowCredentials: true
