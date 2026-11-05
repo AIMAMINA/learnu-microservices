@@ -22,5 +22,11 @@ class StudentCourse(models.Model):
         db_column='course_id'         )
         
 
+    class Meta:
+        # A student can enroll only once in the same course
+        constraints = [
+            models.UniqueConstraint(fields=["student_id", "course_id"], name="unique_enrollment"),
+        ]
+
     def __str__(self):
         return f"Student {self.student_id} -> Course {self.course_id.id}"

@@ -1,3 +1,4 @@
+import { useTheme } from "../context/ThemeContext";
 import { GRAPHQL_URL, authFetch } from "../utils/api";
 import { useEffect, useState } from "react";
 import { Users, BookOpen } from "lucide-react";
@@ -8,7 +9,7 @@ import ChatbotImage from "../assets/chatbot.png";
 
 
 export function HomePage() {
-  const isDark = document.body.classList.contains("dark");
+  const { darkMode: isDark } = useTheme();
 
   const [totalStudents, setTotalStudents] = useState<number>(0);
   const [totalCourses, setTotalCourses] = useState<number>(0);

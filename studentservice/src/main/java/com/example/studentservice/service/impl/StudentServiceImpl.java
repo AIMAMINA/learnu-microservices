@@ -5,7 +5,9 @@ import com.example.studentservice.model.University;
 import com.example.studentservice.repository.StudentRepository;
 import com.example.studentservice.repository.UniversityRepository;
 import com.example.studentservice.service.StudentService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @Service
@@ -21,8 +23,14 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Student saveStudent(Student student) {
+        if (student.getName() == null || student.getName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The student name is required");
+        }
+        if (student.getUniversity() == null || student.getUniversity().getId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "university.id is required");
+        }
         University university = universityRepository.findById(student.getUniversity().getId())
-                .orElseThrow(() -> new RuntimeException("Université non trouvée"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "University not found"));
 
         student.setUniversity(university);
         return studentRepository.save(student);
@@ -35,7 +43,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
 public Student getStudentById(Long id) {
     return studentRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Étudiant non trouvé"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found"));
 }
 
 @Override
@@ -44,9 +52,9 @@ public Student updateStudent(Long id, Student studentDetails) {
     existingStudent.setName(studentDetails.getName());
     existingStudent.setAddress(studentDetails.getAddress());
 
-    if (studentDetails.getUniversity() != null) {
+    if (studentDetails.getUniversity() != null && studentDetails.getUniversity().getId() != null) {
         University university = universityRepository.findById(studentDetails.getUniversity().getId())
-                .orElseThrow(() -> new RuntimeException("Université non trouvée"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "University not found"));
         existingStudent.setUniversity(university);
     }
 

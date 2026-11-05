@@ -1,3 +1,4 @@
+import { useTheme } from "../context/ThemeContext";
 import { API_URL, authFetch } from "../utils/api";
 import { useEffect, useState } from "react";
 import {
@@ -25,7 +26,7 @@ const GATEWAY_BASE = API_URL;
 const UNIVERSITIES_URL = `${GATEWAY_BASE}/universities/all`;
 
 export default function UniversitiesPage() {
-  const isDark = document.body.classList.contains("dark");
+  const { darkMode: isDark } = useTheme();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [universities, setUniversities] = useState<University[]>([]);

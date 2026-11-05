@@ -6,6 +6,22 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+import logging
+
+from .models import UserSettings
+
+logger = logging.getLogger(__name__)
+
+
+def password_errors(password, user=None):
+    """Django's password rules (length, common passwords, only digits...)."""
+    try:
+        validate_password(password, user)
+        return None
+    except ValidationError as e:
+        return " ".join(e.messages)
 
 
 def tokens_for(user):
@@ -45,6 +61,10 @@ class RegisterView(APIView):
                 return Response({"error": "Email already exists."},
                                 status=status.HTTP_400_BAD_REQUEST)
 
+            error = password_errors(password, User(username=username, email=email))
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
             # Crée l’utilisateur
             user = User.objects.create_user(username=username, email=email, password=password)
 
@@ -58,8 +78,9 @@ class RegisterView(APIView):
                 "refresh": str(refresh)
             }, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            return Response({"error": f"Server error: {str(e)}"},
+        except Exception:
+            logger.exception("Unexpected error")
+            return Response({"error": "Server error, please try again."},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -99,8 +120,9 @@ class LoginView(APIView):
                 "refresh": str(refresh)
             }, status=status.HTTP_200_OK)
 
-        except Exception as e:
-            return Response({"error": f"Server error: {str(e)}"},
+        except Exception:
+            logger.exception("Unexpected error")
+            return Response({"error": "Server error, please try again."},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -124,18 +146,13 @@ def user_profile(request):
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def user_settings(request):
-    user = request.user
-    if request.method == 'GET':
-        return Response({
-            "dark_mode": getattr(user, "dark_mode", False),
-            "notifications": getattr(user, "notifications", True),
-        })
-    elif request.method == 'PUT':
-        data = request.data
-        user.dark_mode = data.get("dark_mode", False)
-        user.notifications = data.get("notifications", True)
-        user.save()
-        return Response({"message": "Settings updated successfully."})
+    prefs, _ = UserSettings.objects.get_or_create(user=request.user)
+    if request.method == 'PUT':
+        for field in ("dark_mode", "notifications"):
+            if field in request.data:
+                prefs.__setattr__(field, bool(request.data[field]))
+        prefs.save()
+    return Response({"dark_mode": prefs.dark_mode, "notifications": prefs.notifications})
 
 
 # -------------------------------------------------------------
@@ -145,12 +162,19 @@ def user_settings(request):
 @permission_classes([IsAuthenticated])
 def change_password(request):
     user = request.user
-    password = request.data.get("password")
+    current = request.data.get("current_password", "")
+    new = request.data.get("password", "")
 
-    if not password:
-        return Response({"error": "Password required."},
+    if not current or not new:
+        return Response({"error": "Current and new passwords are required."},
                         status=status.HTTP_400_BAD_REQUEST)
+    if not user.check_password(current):
+        return Response({"error": "The current password is incorrect."},
+                        status=status.HTTP_400_BAD_REQUEST)
+    error = password_errors(new, user)
+    if error:
+        return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
-    user.set_password(password)
+    user.set_password(new)
     user.save()
     return Response({"message": "Password changed successfully."})

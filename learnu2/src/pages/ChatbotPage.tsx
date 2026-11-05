@@ -1,3 +1,4 @@
+import { useTheme } from "../context/ThemeContext";
 import { authFetch } from "../utils/api";
 import { useState } from "react";
 import { FileText, Languages, Sparkles } from "lucide-react";
@@ -11,7 +12,7 @@ export default function AIAssistant() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const isDark = document.body.classList.contains("dark");
+  const { darkMode: isDark } = useTheme();
 
   // --- CALL DJANGO CHATBOT API ---
   const processText = async (mode: "summary" | "translate") => {

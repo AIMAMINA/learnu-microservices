@@ -1,4 +1,4 @@
-﻿from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Course, StudentCourse
 from .serializers import CourseSerializer, StudentCourseSerializer
@@ -15,3 +15,6 @@ class CourseViewSet(viewsets.ModelViewSet):
 class StudentCourseViewSet(viewsets.ModelViewSet):
     queryset = StudentCourse.objects.all()
     serializer_class = StudentCourseSerializer
+    # ?course_id=3 or ?student_id=7 (used by the GraphQL gateway)
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["course_id", "student_id"]

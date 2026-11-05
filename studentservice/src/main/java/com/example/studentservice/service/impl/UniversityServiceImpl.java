@@ -3,7 +3,9 @@ package com.example.studentservice.service.impl;
 import com.example.studentservice.model.University;
 import com.example.studentservice.repository.UniversityRepository;
 import com.example.studentservice.service.UniversityService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -41,7 +43,7 @@ public class UniversityServiceImpl implements UniversityService {
     @Override
     public University getUniversityById(Long id) {
         University university = universityRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Université non trouvée"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "University not found"));
 
         // ✅ Ajout du count ici aussi pour cohérence
         if (university.getStudents() != null) {

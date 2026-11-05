@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { authFetch, getToken } from "../utils/api";
 
 interface ThemeContextType {
   darkMode: boolean;
@@ -10,30 +11,41 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleDarkMode: () => {},
 });
 
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [darkMode, setDarkMode] = useState(false);
+function applyTheme(isDark: boolean) {
+  document.body.classList.toggle("dark", isDark);
+  localStorage.setItem("dark_mode", String(isDark));
+}
 
-  // ✅ Charger le thème depuis localStorage
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const [darkMode, setDarkMode] = useState(localStorage.getItem("dark_mode") === "true");
+
+  // Local value first (instant), then the preference saved on the account
   useEffect(() => {
-    const savedMode = localStorage.getItem("dark_mode");
-    const isDark = savedMode === "true";
-    setDarkMode(isDark);
-    document.body.classList.toggle("dark", isDark);
+    applyTheme(darkMode);
+    if (!getToken()) return;
+    authFetch("/auth/settings/")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((prefs) => {
+        if (prefs && typeof prefs.dark_mode === "boolean") {
+          setDarkMode(prefs.dark_mode);
+          applyTheme(prefs.dark_mode);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Fonction de bascule instantanée
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
-    document.body.classList.toggle("dark", newMode);
-    localStorage.setItem("dark_mode", String(newMode));
+    applyTheme(newMode);
+    if (getToken()) {
+      authFetch("/auth/settings/", { method: "PUT", body: JSON.stringify({ dark_mode: newMode }) }).catch(() => {});
+    }
   };
 
-  return (
-    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>{children}</ThemeContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTheme = () => useContext(ThemeContext);

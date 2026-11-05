@@ -1,3 +1,4 @@
+import { useTheme } from "../context/ThemeContext";
 import { API_URL, GRAPHQL_URL, authFetch } from "../utils/api";
 import { useState, useEffect } from "react";
 import {
@@ -30,7 +31,7 @@ const GATEWAY_BASE = API_URL;
 
 
 export default function CoursesPage() {
-  const isDark = document.body.classList.contains("dark");
+  const { darkMode: isDark } = useTheme();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");

@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* Dark theme safety net for the pages that only have light colours (profile, forms, modals) */
+body.dark .bg-white { background-color: #1f2937; }
+body.dark .bg-\[\#E7EEF4\],
+body.dark .bg-\[\#F5F8FA\],
+body.dark .bg-\[\#F8FAFC\],
+body.dark .bg-gray-50,
+body.dark .bg-gray-100 { background-color: #111827; }
+body.dark .text-\[\#1E293B\],
+body.dark .text-\[\#0F172A\],
+body.dark .text-gray-900,
+body.dark .text-black { color: #f3f4f6; }
+body.dark .text-\[\#3E4753\],
+body.dark .text-\[\#64748B\] { color: #9ca3af; }
+body.dark .border-\[\#CAD8E4\],
+body.dark .border-gray-200 { border-color: #374151; }
+body.dark input,
+body.dark select,
+body.dark textarea { color-scheme: dark; }

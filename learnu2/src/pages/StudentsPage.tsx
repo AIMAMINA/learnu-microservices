@@ -1,3 +1,4 @@
+import { useTheme } from "../context/ThemeContext";
 import { API_URL, GRAPHQL_URL, authFetch } from "../utils/api";
 import { useEffect, useMemo, useState } from "react";
 import { Search, Plus, Pencil, Trash2, X } from "lucide-react";
@@ -55,7 +56,7 @@ async function fetchGraphQL<T>(
 
 export default function StudentsPage() {
   // 🌙 Mode sombre
-  const isDark = document.body.classList.contains("dark");
+  const { darkMode: isDark } = useTheme();
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,7 @@ export default function StudentsPage() {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUniversity, setSelectedUniversity] = useState<number | "all">("all");
+  const [selectedUniversity] = useState<number | "all">("all");
 
   // Modal
   const [showModal, setShowModal] = useState(false);

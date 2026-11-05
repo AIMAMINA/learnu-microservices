@@ -51,7 +51,7 @@ public List<Student> searchByName(@RequestParam String name) {
 }
 @PostMapping("/bulk")
 public ResponseEntity<List<Student>> addMany(@RequestBody List<Student> students) {
-    return ResponseEntity.ok(studentRepository.saveAll(students));
+    return ResponseEntity.ok(students.stream().map(studentService::saveStudent).toList());
 }
 
 }

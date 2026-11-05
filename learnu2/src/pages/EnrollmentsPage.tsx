@@ -1,23 +1,22 @@
 import { GRAPHQL_URL, authFetch } from "../utils/api";
 import { useEffect, useState } from "react";
+import { useTheme } from "../context/ThemeContext";
+
+interface Student { id: number; name: string }
+interface Course { id: number; name: string; instructor: string }
+interface Enrollment { id: number; student_id: number; course_id: number }
 import { User, BookOpen, X, ClipboardList, Users } from "lucide-react";
-import api from "../utils/axiosInstance";
 
 /** 🌐 Gateway principal (Render) */
 const GQL_URL = GRAPHQL_URL;
 
 export default function EnrollmentsPage() {
-  const isDark = document.body.classList.contains("dark");
+  const { darkMode: isDark } = useTheme();
 
-  // --- STATES PRINCIPAUX ---
-  const [students, setStudents] = useState<{ name: string }[]>([]);
-  const [courses, setCourses] = useState<{ name: string; instructor: string }[]>([]);
-  const [assignments, setAssignments] = useState<
-    { student: string; course: string; instructor: string }[]
-  >(() => {
-    const saved = localStorage.getItem("assignments");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // --- DATA (from the gateway) ---
+  const [students, setStudents] = useState<Student[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
 
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
@@ -25,32 +24,26 @@ export default function EnrollmentsPage() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   /** ================================
-   * 📦 Sauvegarde automatique
-   * ================================ */
-  useEffect(() => {
-    localStorage.setItem("assignments", JSON.stringify(assignments));
-  }, [assignments]);
-
-  /** ================================
-   * 🔄 Charger les étudiants et cours
+   * 🔄 Load students, courses and enrollments
+   * Enrollments are stored in the course service (/student-courses/),
+   * no longer only in the browser's localStorage.
    * ================================ */
   const fetchData = async () => {
     try {
-      const query = `
-        {
-          students { name }
-          courses { name instructor }
-        }
-      `;
-      const res = await authFetch(GQL_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-      });
-      if (!res.ok) throw new Error(`GraphQL fetch failed (${res.status})`);
-      const { data } = await res.json();
+      const query = `{ students { id name } courses { id name instructor } }`;
+      const [gqlRes, enrollRes] = await Promise.all([
+        authFetch(GQL_URL, { method: "POST", body: JSON.stringify({ query }) }),
+        authFetch("/student-courses/"),
+      ]);
+      if (!gqlRes.ok) throw new Error(`Could not load students and courses (${gqlRes.status})`);
+      if (!enrollRes.ok) throw new Error(`Could not load enrollments (${enrollRes.status})`);
+
+      const { data, errors } = await gqlRes.json();
+      if (errors?.length) throw new Error(errors[0].message);
       setStudents(data?.students ?? []);
       setCourses(data?.courses ?? []);
+      setEnrollments(await enrollRes.json());
+      setError(null);
     } catch (err: any) {
       setError(err.message);
     }
@@ -62,65 +55,56 @@ export default function EnrollmentsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  /** ================================
-   * 🧹 Nettoyage auto
-   * ================================ */
-  useEffect(() => {
-    if (students.length > 0) {
-      setAssignments((prev) => {
-        const updated = prev.filter((a) =>
-          students.some((s) => s.name === a.student)
-        );
-        localStorage.setItem("assignments", JSON.stringify(updated));
-        return updated;
-      });
-    }
-  }, [students]);
+  /** Enrollments joined with student and course names, for the table */
+  const assignments = enrollments
+    .map((e) => {
+      const student = students.find((s) => s.id === e.student_id);
+      const course = courses.find((c) => c.id === e.course_id);
+      if (!student || !course) return null;
+      return { id: e.id, student: student.name, course: course.name, instructor: course.instructor };
+    })
+    .filter((a): a is { id: number; student: string; course: string; instructor: string } => a !== null);
 
   /** ================================
-   * ➕ Affecter un étudiant à un cours
+   * ➕ Enroll a student in a course
    * ================================ */
   const handleAssign = async () => {
-    if (!selectedStudent || !selectedCourse) return;
+    const student = students.find((s) => s.name === selectedStudent);
+    const course = courses.find((c) => c.name === selectedCourse);
+    if (!student) return setError("Choose a student from the list.");
+    if (!course) return setError("Choose a course.");
+    if (enrollments.some((e) => e.student_id === student.id && e.course_id === course.id)) {
+      return setError(`${student.name} is already enrolled in ${course.name}.`);
+    }
 
-    const courseObj = courses.find((c) => c.name === selectedCourse);
-    const alreadyAssigned = assignments.find(
-      (a) => a.student === selectedStudent && a.course === selectedCourse
-    );
-    if (alreadyAssigned) return;
-
-    const newAssignment = {
-      student: selectedStudent,
-      course: selectedCourse,
-      instructor: courseObj ? courseObj.instructor : "—",
-    };
-
-    setAssignments([...assignments, newAssignment]);
-
+    const res = await authFetch("/student-courses/", {
+      method: "POST",
+      body: JSON.stringify({ student_id: student.id, course_id: course.id }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return setError(body.non_field_errors?.[0] ?? `Enrollment failed (${res.status})`);
+    }
 
     setSelectedStudent("");
     setShowDropdown(false);
+    await fetchData();
   };
 
   /** ================================
-   * ❌ Supprimer une assignation
+   * ❌ Remove an enrollment
    * ================================ */
-  const handleRemove = async (student: string, course: string) => {
-    const updated = assignments.filter(
-      (a) => !(a.student === student && a.course === course)
-    );
-    setAssignments(updated);
-    localStorage.setItem("assignments", JSON.stringify(updated));
-
+  const handleRemove = async (id: number) => {
+    const res = await authFetch(`/student-courses/${id}/`, { method: "DELETE" });
+    if (!res.ok && res.status !== 404) return setError(`Could not remove the enrollment (${res.status})`);
+    await fetchData();
   };
 
   /** ================================
    * 🔍 Filtrage des étudiants
    * ================================ */
   const filteredStudents = students
-    .filter((s) =>
-      s.name.toLowerCase().includes(selectedStudent.toLowerCase())
-    )
+    .filter((s) => s.name.toLowerCase().includes(selectedStudent.toLowerCase()))
     .slice(0, 15);
 
   /** ================================
@@ -374,9 +358,9 @@ export default function EnrollmentsPage() {
                   </td>
                 </tr>
               ) : (
-                assignments.map((a, i) => (
+                assignments.map((a) => (
                   <tr
-                    key={i}
+                    key={a.id}
                     className={`border-t transition-all duration-150 ${
                       isDark
                         ? "hover:bg-gray-700 border-gray-700"
@@ -388,7 +372,7 @@ export default function EnrollmentsPage() {
                     <td className="px-6 py-4">{a.instructor}</td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleRemove(a.student, a.course)}
+                        onClick={() => handleRemove(a.id)}
                         className="px-3 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-semibold"
                         style={{
                           backgroundColor: "rgba(239,68,68,0.1)",

@@ -1,65 +1,39 @@
 import { authFetch } from "../utils/api";
-import { useEffect, useState } from 'react';
-import { Lock, Moon, Sun, Loader2, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
+import { Lock, Moon, Sun } from 'lucide-react';
 
 export function SettingsPage() {
-  const [darkMode, setDarkMode] = useState(false);
+  // The theme is shared with the navbar and saved on the account (see ThemeContext)
+  const { darkMode, toggleDarkMode } = useTheme();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // 🔹 Charger depuis l’API (si tu veux garder la préférence)
-  useEffect(() => {
-    const savedMode = localStorage.getItem('dark_mode');
-    if (savedMode === 'true') setDarkMode(true);
-  }, []);
-
-  // 🔹 Appliquer le thème globalement
-  useEffect(() => {
-    const body = document.body;
-    if (darkMode) {
-      body.classList.add('dark');
-      localStorage.setItem('dark_mode', 'true');
-    } else {
-      body.classList.remove('dark');
-      localStorage.setItem('dark_mode', 'false');
-    }
-  }, [darkMode]);
-
   // 🔹 Changement du mot de passe
   const handlePasswordChange = async () => {
-    if (!password) return setMessage('Please enter a new password.');
+    if (!currentPassword || !password) return setMessage('Enter your current password and a new password.');
     setSaving(true);
     try {
-      const token = localStorage.getItem('access_token');
       const response = await authFetch('/auth/change-password/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ current_password: currentPassword, password }),
       });
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
         setMessage('🔒 Password updated successfully!');
+        setCurrentPassword('');
         setPassword('');
       } else {
-        setMessage('❌ Failed to update password.');
+        setMessage(`❌ ${data.error ?? 'Failed to update password.'}`);
       }
     } catch {
       setMessage('⚠️ Server error.');
     }
     setSaving(false);
   };
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-screen text-gray-400">
-        <Loader2 className="animate-spin mr-2" /> Loading settings...
-      </div>
-    );
 
   return (
     <div
@@ -102,7 +76,9 @@ export function SettingsPage() {
               </div>
             </div>
             <button
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={toggleDarkMode}
+              aria-label="Toggle dark mode"
+              aria-pressed={darkMode}
               className={`w-12 h-6 rounded-full transition-all ${
                 darkMode ? 'bg-cyan-500' : 'bg-gray-300'
               }`}
@@ -127,12 +103,25 @@ export function SettingsPage() {
               <Lock className="text-cyan-500" />
               <p className="font-medium">Change Password</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Current password"
+                autoComplete="current-password"
+                className={`flex-1 rounded-lg p-2 outline-none border transition-all ${
+                  darkMode
+                    ? 'bg-gray-900 border-gray-700 text-gray-100 placeholder-gray-400'
+                    : 'border-[#CAD8E4] bg-white text-[#1E293B]'
+                }`}
+              />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter new password"
+                placeholder="New password"
+                autoComplete="new-password"
                 className={`flex-1 rounded-lg p-2 outline-none border transition-all ${
                   darkMode
                     ? 'bg-gray-900 border-gray-700 text-gray-100 placeholder-gray-400'
@@ -153,26 +142,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          {/* SAVE BUTTON */}
-          <button
-            onClick={() => setMessage('✅ Settings saved!')}
-            disabled={saving}
-            className={`w-full mt-6 py-3.5 rounded-xl font-semibold flex justify-center items-center gap-2 transition-transform hover:scale-[1.02] ${
-              darkMode
-                ? 'bg-gradient-to-r from-cyan-600 to-sky-700 text-white'
-                : 'bg-gradient-to-r from-cyan-400 to-sky-600 text-white'
-            }`}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="animate-spin" size={18} /> Saving...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={18} /> Save Changes
-              </>
-            )}
-          </button>
+          <p className="text-center text-sm opacity-70">Your theme is saved to your account automatically.</p>
 
           {/* STATUS MESSAGE */}
           {message && (
