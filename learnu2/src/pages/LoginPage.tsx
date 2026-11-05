@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, LogIn } from "lucide-react";
 import api from "../utils/axiosInstance";
-import { logActivity } from "../utils/activityLogger"; // ✅ ajout cohérent avec RegisterPage
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -26,7 +25,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       // --- Authentification via Auth-Service Render
       const response = await api.post(
-        "https://auth-service-ojes.onrender.com/auth/auth/login/",
+        "/auth/login/",
         {
           username: email,
           password: password,
@@ -46,13 +45,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       localStorage.setItem("username", email);
       localStorage.setItem("isAuthenticated", "true");
 
-      // ✅ Log Activity vers ActivityService
-      await logActivity(
-        email,
-        "LOGIN",
-        "Auth Service",
-        `${email} successfully logged in`
-      );
 
       // ✅ Redirection vers dashboard
       onLogin();
@@ -60,7 +52,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
       // --- Vérification du profil (optionnel)
       api
-        .get("https://auth-service-ojes.onrender.com/auth/auth/profile/", {
+        .get("/auth/profile/", {
           headers: { Authorization: `Bearer ${data.access}` },
         })
         .then(() => console.log("✅ Profile verified"))

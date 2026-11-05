@@ -7,9 +7,26 @@ import re
 # ============================================================
 # 🔹 Chargement des modèles une seule fois au démarrage
 # ============================================================
-translator_fr_en = pipeline("translation", model="Helsinki-NLP/opus-mt-fr-en")   # Français → Anglais
-translator_en_fr = pipeline("translation", model="Helsinki-NLP/opus-mt-en-fr")   # Anglais → Français
-summarizer_multi = pipeline("summarization", model="csebuetnlp/mT5_multilingual_XLSum")
+# Loaded lazily on first use: the service starts instantly and only pays the
+# (large) download/loading cost when someone actually uses the chatbot.
+from functools import lru_cache
+
+
+@lru_cache(maxsize=None)
+def _pipeline(task, model):
+    return pipeline(task, model=model)
+
+
+def translator_fr_en(text):  # Français → Anglais
+    return _pipeline("translation", "Helsinki-NLP/opus-mt-fr-en")(text)
+
+
+def translator_en_fr(text):  # Anglais → Français
+    return _pipeline("translation", "Helsinki-NLP/opus-mt-en-fr")(text)
+
+
+def summarizer_multi(text, **kwargs):
+    return _pipeline("summarization", "csebuetnlp/mT5_multilingual_XLSum")(text, **kwargs)
 
 # ============================================================
 # 🔹 Détection automatique de la langue

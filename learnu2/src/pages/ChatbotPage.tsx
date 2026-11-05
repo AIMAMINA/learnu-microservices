@@ -1,3 +1,4 @@
+import { authFetch } from "../utils/api";
 import { useState } from "react";
 import { FileText, Languages, Sparkles } from "lucide-react";
 
@@ -25,14 +26,20 @@ export default function AIAssistant() {
     setTranslation("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8090/chatbot/process/", {
+      const response = await authFetch("/chatbot/process/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: input, mode }),
       });
 
       if (!response.ok) {
-        throw new Error("Server error");
+        const body = await response.json().catch(() => ({}));
+        if (response.status === 503 || response.status === 502 || response.status === 504) {
+          throw new Error(
+            "The AI service is not running. Start it with: docker compose --profile ai up --build",
+          );
+        }
+        throw new Error(body.error || `The AI service answered with error ${response.status}.`);
       }
 
       const data = await response.json();
@@ -46,7 +53,7 @@ export default function AIAssistant() {
       }
     } catch (error) {
       console.error("❌ Error fetching chatbot:", error);
-      setErrorMsg("The AI server is not responding. Make sure Django is running.");
+      setErrorMsg(error instanceof Error ? error.message : "The AI service cannot be reached.");
     }
 
     setLoading(false);

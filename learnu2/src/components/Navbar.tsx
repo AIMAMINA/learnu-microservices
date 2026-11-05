@@ -1,3 +1,4 @@
+import { authFetch } from "../utils/api";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { User, Moon, Sun } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
@@ -30,7 +31,7 @@ export function Navbar() {
     const token = localStorage.getItem("access_token");
     if (!token) return;
 
-    fetch("https://auth-service-ojes.onrender.com/auth/auth/profile/", {
+    authFetch("/auth/profile/", {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

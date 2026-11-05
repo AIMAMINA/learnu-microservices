@@ -1,13 +1,23 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
+import { ApolloClient, InMemoryCache, ApolloProvider, HttpLink } from "@apollo/client";
+import { GRAPHQL_URL, getToken } from "./utils/api";
 import App from "./App";
 import AppWrapper from "./AppWrapper";
 import { ThemeProvider } from "./context/ThemeContext";
 import "./index.css";
 
 const client = new ApolloClient({
-  uri: "https://gateway-negf.onrender.com/graphql/",
+  // The token is read on every request, so it is picked up right after login
+  link: new HttpLink({
+    uri: GRAPHQL_URL,
+    fetch: (input, init) => {
+      const headers = new Headers(init?.headers);
+      const token = getToken();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      return fetch(input, { ...init, headers });
+    },
+  }),
   cache: new InMemoryCache(),
 });
 

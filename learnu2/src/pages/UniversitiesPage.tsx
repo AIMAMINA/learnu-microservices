@@ -1,3 +1,4 @@
+import { API_URL, authFetch } from "../utils/api";
 import { useEffect, useState } from "react";
 import {
   University as UniversityIcon,
@@ -9,7 +10,6 @@ import {
   X,
   Users,
 } from "lucide-react";
-import { logActivity } from "../utils/activityLogger"; // ✅ audit automatique
 
 interface University {
   id: number;
@@ -21,7 +21,7 @@ interface University {
 // ============================
 // 🔗 URLs — version Render
 // ============================
-const GATEWAY_BASE = "https://gateway-negf.onrender.com";
+const GATEWAY_BASE = API_URL;
 const UNIVERSITIES_URL = `${GATEWAY_BASE}/universities/all`;
 
 export default function UniversitiesPage() {
@@ -44,7 +44,7 @@ export default function UniversitiesPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(UNIVERSITIES_URL);
+      const res = await authFetch(UNIVERSITIES_URL);
       if (!res.ok) throw new Error(`Failed to load universities (${res.status})`);
 
       const data = await res.json();
@@ -93,7 +93,7 @@ export default function UniversitiesPage() {
         ? `${GATEWAY_BASE}/universities/update/${editUniversity.id}`
         : `${GATEWAY_BASE}/universities/add`;
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -104,13 +104,6 @@ export default function UniversitiesPage() {
       await loadUniversities();
       setShowModal(false);
 
-      // ✅ Log vers ActivityService
-      await logActivity(
-        username,
-        editUniversity ? "UPDATE" : "CREATE",
-        "University Service",
-        `${username} ${editUniversity ? "updated" : "added"} university "${formData.name}"`
-      );
     } catch (e: any) {
       setError(e.message ?? "Save error");
     }
@@ -123,7 +116,7 @@ export default function UniversitiesPage() {
     if (!window.confirm("Are you sure you want to delete this university?")) return;
 
     try {
-      const res = await fetch(`${GATEWAY_BASE}/universities/delete/${id}`, {
+      const res = await authFetch(`${GATEWAY_BASE}/universities/delete/${id}`, {
         method: "DELETE",
       });
 
@@ -131,13 +124,6 @@ export default function UniversitiesPage() {
 
       await loadUniversities();
 
-      // ✅ Log vers ActivityService
-      await logActivity(
-        username,
-        "DELETE",
-        "University Service",
-        `${username} deleted university with ID ${id}`
-      );
     } catch (e: any) {
       setError(e.message ?? "Delete error");
     }

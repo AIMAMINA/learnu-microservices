@@ -25,7 +25,7 @@ except ImportError:
 # ------------------------------------------------------------
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
 DEBUG = os.environ.get("DEBUG", "True") == "True"
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 # ------------------------------------------------------------
 # APPS
@@ -80,14 +80,11 @@ WSGI_APPLICATION = 'chatbot_project.wsgi.application'
 # ------------------------------------------------------------
 # DATABASE
 # ------------------------------------------------------------
+# The chatbot stores no data: SQLite is enough (only Django's admin tables)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'bdchatbot'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 

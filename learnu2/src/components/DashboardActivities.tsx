@@ -1,3 +1,4 @@
+import { authFetch } from "../utils/api";
 import { useEffect, useState } from "react";
 
 interface Activity {
@@ -16,7 +17,7 @@ export default function DashboardActivities() {
     async function fetchActivities() {
       try {
         // ⚠️ Corrigé : pas d’espace au début
-        const res = await fetch("http://localhost:8088/activity/latest");
+        const res = await authFetch("/activity/latest");
 
         if (!res.ok) throw new Error("Erreur réseau");
         const data = await res.json();

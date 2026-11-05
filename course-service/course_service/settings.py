@@ -23,11 +23,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
 
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "course-servicee.onrender.com",
-]
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 # -------------------------------
@@ -97,7 +93,7 @@ if DATABASE_URL:
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=True
+            ssl_require=os.environ.get("DATABASE_SSL", "True") == "True"
         )
     }
 else:

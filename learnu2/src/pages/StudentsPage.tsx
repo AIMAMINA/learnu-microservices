@@ -1,3 +1,4 @@
+import { API_URL, GRAPHQL_URL, authFetch } from "../utils/api";
 import { useEffect, useMemo, useState } from "react";
 import { Search, Plus, Pencil, Trash2, X } from "lucide-react";
 import api from "../utils/axiosInstance"; // ✅ import du logger auto
@@ -21,9 +22,7 @@ interface Student {
 // ============================
 // Helpers
 // ============================
-const GATEWAY_BASE = "https://gateway-negf.onrender.com";
-const GRAPHQL_URL = "https://gateway-negf.onrender.com/graphql/";
-const ACTIVITY_URL = "http://localhost:8088/activity/add"; // ✅ nouveau endpoint ActivityService
+const GATEWAY_BASE = API_URL;
 
 // GraphQL minimal pour Students
 const STUDENTS_QUERY = `
@@ -42,7 +41,7 @@ async function fetchGraphQL<T>(
   query: string,
   variables?: Record<string, any>
 ): Promise<T> {
-  const res = await fetch(GRAPHQL_URL, {
+  const res = await authFetch(GRAPHQL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
@@ -116,32 +115,6 @@ export default function StudentsPage() {
   // ============================
   // Gestion utilisateur courant
   // ============================
-  const getCurrentUser = (): string => {
-    const username = localStorage.getItem("username");
-    return username || "Anonymous";
-  };
-
-  // ============================
-  // 🔵 Envoi du log à ActivityService
-  // ============================
-  const logActivity = async (action: string, details: string) => {
-    const username = getCurrentUser();
-    try {
-      await fetch(ACTIVITY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,             // 👤 utilisateur
-          action,               // CREATE / UPDATE / DELETE
-          microservice: "Student Service",
-          details,              // texte descriptif
-        }),
-      });
-      console.log(`📘 [ACTIVITY] ${username} → ${action}: ${details}`);
-    } catch (err) {
-      console.warn("⚠️ Activity log failed:", err);
-    }
-  };
 
   // ============================
   // CRUD
@@ -161,10 +134,8 @@ export default function StudentsPage() {
 
       if (editStudent) {
         await api.put(`${GATEWAY_BASE}/students/update/${editStudent.id}`, payload);
-        await logActivity("UPDATE Student", `Student "${formData.name}" updated successfully`);
       } else {
         await api.post(`${GATEWAY_BASE}/students/add`, payload);
-        await logActivity("CREATE Student", `Student "${formData.name}" created successfully`);
       }
 
       await loadStudents();
@@ -185,7 +156,6 @@ export default function StudentsPage() {
       setError(null);
 
       await api.delete(`${GATEWAY_BASE}/students/delete/${id}`);
-      await logActivity("DELETE Student", `Deleted student with ID ${id}`);
 
       await loadStudents();
     } catch (e: any) {

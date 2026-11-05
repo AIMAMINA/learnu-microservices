@@ -1,0 +1,11 @@
+Django>=5.0,<5.3
+django-cors-headers>=4.3
+python-dotenv>=1.0
+gunicorn>=22.0
+# transformers 5 removed the "translation" and "summarization" pipelines used here
+transformers>=4.40,<5
+sentencepiece>=0.2
+protobuf>=4.25
+# CPU-only PyTorch (much lighter than the CUDA build)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2

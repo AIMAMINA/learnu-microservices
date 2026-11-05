@@ -1,9 +1,11 @@
+import os
 import strawberry
 import requests
 from typing import List, Optional
 
-COURSE_SERVICE_URL = "https://course-servicee.onrender.com"   
-STUDENT_SERVICE_URL = "https://student-service-kdwq.onrender.com"
+# Internal addresses of the services (set in docker-compose / .env)
+COURSE_SERVICE_URL = os.environ.get("COURSE_SERVICE_URL", "http://localhost:8002").rstrip("/")
+STUDENT_SERVICE_URL = os.environ.get("STUDENT_SERVICE_URL", "http://localhost:8080").rstrip("/")
 
 REQUEST_TIMEOUT = 5 
 

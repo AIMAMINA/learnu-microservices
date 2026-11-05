@@ -11,7 +11,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/activity")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // autorise les appels du front
 public class UserActivityController {
 
     private final UserActivityRepository repository;

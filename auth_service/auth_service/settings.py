@@ -134,6 +134,9 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
+    # Shared with the API gateway, which verifies every token (at least 32 characters)
+    'SIGNING_KEY': os.getenv("JWT_SECRET", SECRET_KEY),
+    'ALGORITHM': 'HS256',
 }
 
 # ---------------------------------------------------------

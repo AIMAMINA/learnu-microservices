@@ -1,3 +1,4 @@
+import { authFetch } from "../utils/api";
 import { useEffect, useState } from 'react';
 import { Lock, Moon, Sun, Loader2, CheckCircle } from 'lucide-react';
 
@@ -32,7 +33,7 @@ export function SettingsPage() {
     setSaving(true);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('POST https://auth-service-ojes.onrender.com/auth/auth/change-password/', {
+      const response = await authFetch('/auth/change-password/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

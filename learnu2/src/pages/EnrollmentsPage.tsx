@@ -1,14 +1,13 @@
+import { GRAPHQL_URL, authFetch } from "../utils/api";
 import { useEffect, useState } from "react";
 import { User, BookOpen, X, ClipboardList, Users } from "lucide-react";
 import api from "../utils/axiosInstance";
-import { logActivity } from "../utils/activityLogger"; // ✅ Logger local
 
 /** 🌐 Gateway principal (Render) */
-const GQL_URL = "https://gateway-negf.onrender.com/graphql/";
+const GQL_URL = GRAPHQL_URL;
 
 export default function EnrollmentsPage() {
   const isDark = document.body.classList.contains("dark");
-  const username = localStorage.getItem("username") || "Anonymous";
 
   // --- STATES PRINCIPAUX ---
   const [students, setStudents] = useState<{ name: string }[]>([]);
@@ -43,7 +42,7 @@ export default function EnrollmentsPage() {
           courses { name instructor }
         }
       `;
-      const res = await fetch(GQL_URL, {
+      const res = await authFetch(GQL_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
@@ -98,13 +97,6 @@ export default function EnrollmentsPage() {
 
     setAssignments([...assignments, newAssignment]);
 
-    // ✅ Log vers Activity Service local
-    await logActivity(
-      username,
-      "CREATE",
-      "Enrollment Service",
-      `${username} assigned ${selectedStudent} to course "${selectedCourse}"`
-    );
 
     setSelectedStudent("");
     setShowDropdown(false);
@@ -120,13 +112,6 @@ export default function EnrollmentsPage() {
     setAssignments(updated);
     localStorage.setItem("assignments", JSON.stringify(updated));
 
-    // ✅ Log Activity local
-    await logActivity(
-      username,
-      "DELETE",
-      "Enrollment Service",
-      `${username} removed ${student} from "${course}"`
-    );
   };
 
   /** ================================

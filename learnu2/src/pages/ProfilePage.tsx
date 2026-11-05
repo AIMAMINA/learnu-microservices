@@ -1,3 +1,4 @@
+import { authFetch } from "../utils/api";
 import { useEffect, useState } from 'react';
 import { User, Mail, Shield, Loader2 } from 'lucide-react';
 
@@ -24,7 +25,7 @@ export function ProfilePage() {
           return;
         }
 
-      const response = await fetch("https://auth-service-ojes.onrender.com/auth/auth/profile/", {
+      const response = await authFetch("/auth/profile/", {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,

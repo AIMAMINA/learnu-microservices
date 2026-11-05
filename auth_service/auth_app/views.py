@@ -8,6 +8,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
 
+def tokens_for(user):
+    """JWT pair; the username claim is read by the API gateway for activity logs."""
+    refresh = RefreshToken.for_user(user)
+    refresh["username"] = user.username
+    return refresh
+
+
 # -------------------------------------------------------------
 # 🔹 REGISTER (Create new user)
 # -------------------------------------------------------------
@@ -31,7 +38,7 @@ class RegisterView(APIView):
             username = username.strip()
 
             # Vérifie unicité
-            if User.objects.filter(username=username).exists():
+            if User.objects.filter(username__iexact=username).exists():
                 return Response({"error": "Username already exists."},
                                 status=status.HTTP_400_BAD_REQUEST)
             if User.objects.filter(email__iexact=email).exists():
@@ -42,7 +49,7 @@ class RegisterView(APIView):
             user = User.objects.create_user(username=username, email=email, password=password)
 
             # 🔐 Crée directement un token JWT (facultatif)
-            refresh = RefreshToken.for_user(user)
+            refresh = tokens_for(user)
 
             return Response({
                 "message": "User created successfully.",
@@ -71,24 +78,19 @@ class LoginView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            identifier = identifier.strip().lower()
-            user = None
+            identifier = identifier.strip()
 
-            # Authentification par email
-            if "@" in identifier:
-                try:
-                    user_obj = User.objects.get(email__iexact=identifier)
-                    user = authenticate(username=user_obj.username, password=password)
-                except User.DoesNotExist:
-                    user = None
-            else:
-                user = authenticate(username=identifier, password=password)
+            # Find the account by email or by username, ignoring case
+            # ("AMINA", "amina" and "Amina" all match the same account)
+            field = "email__iexact" if "@" in identifier else "username__iexact"
+            user_obj = User.objects.filter(**{field: identifier}).first()
+            user = authenticate(username=user_obj.username, password=password) if user_obj else None
 
             if user is None:
                 return Response({"error": "Invalid credentials."},
                                 status=status.HTTP_401_UNAUTHORIZED)
 
-            refresh = RefreshToken.for_user(user)
+            refresh = tokens_for(user)
             return Response({
                 "message": "Login successful.",
                 "username": user.username,

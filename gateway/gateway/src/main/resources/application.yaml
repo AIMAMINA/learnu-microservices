@@ -1,52 +1,62 @@
 server:
-  port: 8083
+  port: ${PORT:8083}
+
+# Shared with the auth service: both must use the same value (at least 32 characters)
+jwt:
+  secret: ${JWT_SECRET}
+
+services:
+  activity-url: ${ACTIVITY_SERVICE_URL:http://localhost:8088}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
 
 spring:
   cloud:
     gateway:
+      default-filters:
+        # Some services also send CORS headers: keep only the gateway's
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+
       routes:
-        # 🔹 Route GraphQL Django Gateway
-        - id: graphql-service
-          uri: https://graphql-gateway-0djs.onrender.com/graphql
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8000}
+          predicates:
+            - Path=/auth/**
+
+        - id: student-service
+          uri: ${STUDENT_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/students/**,/universities/**
+
+        - id: course-service
+          uri: ${COURSE_SERVICE_URL:http://localhost:8002}
+          predicates:
+            - Path=/courses/**,/student-courses/**
+
+        - id: graphql-gateway
+          uri: ${GRAPHQL_SERVICE_URL:http://localhost:8003}
           predicates:
             - Path=/graphql/**
-          filters:
-            - StripPrefix=0
 
-        # 🔹 Route Student microservice
-        - id: student-service
-          uri:  https://student-service-kdwq.onrender.com
+        - id: chatbot-service
+          uri: ${CHATBOT_SERVICE_URL:http://localhost:8004}
           predicates:
-            - Path=/students/**
-          filters:
-            - StripPrefix=0
+            - Path=/chatbot/**
 
-        # 🔹 Route Course microservice
-        - id: course-service
-          uri: https://course-servicee.onrender.com
+        - id: activity-service
+          uri: ${ACTIVITY_SERVICE_URL:http://localhost:8088}
           predicates:
-            - Path=/courses/**
-          filters:
-            - StripPrefix=0
-
-        # 🔹 Université 
-        - id: university-service
-          uri:  https://student-service-kdwq.onrender.com
-          predicates:
-            - Path=/universities/**
-          filters:
-            - StripPrefix=0
+            - Path=/activity/**
 
       globalcors:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:
           '[/**]':
-            allowedOrigins:
-              - "http://localhost:5173"
-              - "https://learnu2.onrender.com"
-              - "https://course-servicee.onrender.com"
-              - "https://graphql-gateway-0djs.onrender.com/graphql"
-              - "https://gateway-service-qxxe.onrender.com"
+            allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
             allowedHeaders: "*"
             allowedMethods: "*"
             allowCredentials: true

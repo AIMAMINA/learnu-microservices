@@ -1,3 +1,4 @@
+import { API_URL, GRAPHQL_URL, authFetch } from "../utils/api";
 import { useState, useEffect } from "react";
 import {
   Search,
@@ -10,7 +11,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { logActivity } from "../utils/activityLogger"; // ✅ ajouté ici
 
 /** ============================
  *  Types alignés au backend
@@ -26,12 +26,11 @@ interface Course {
 /** ============================
  *  🔗 Base URL Render
  *  ============================ */
-const GATEWAY_BASE = "https://gateway-negf.onrender.com";
-const GRAPHQL_URL = `${GATEWAY_BASE}/graphql/`;
+const GATEWAY_BASE = API_URL;
+
 
 export default function CoursesPage() {
   const isDark = document.body.classList.contains("dark");
-  const username = localStorage.getItem("username") || "Anonymous";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -52,7 +51,7 @@ export default function CoursesPage() {
    *  ============================ */
   const fetchCourses = async () => {
     try {
-      const response = await fetch(GRAPHQL_URL, {
+      const response = await authFetch(GRAPHQL_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -129,7 +128,7 @@ export default function CoursesPage() {
     const method = editCourse ? "PUT" : "POST";
 
     try {
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -138,12 +137,6 @@ export default function CoursesPage() {
       // ✅ Cas nominal (pas de CORS)
       if (res.ok || res.status === 201 || res.status === 204) {
         await fetchCourses();
-        await logActivity(
-          username,
-          editCourse ? "UPDATE" : "CREATE",
-          "Course Service",
-          `${username} ${editCourse ? "updated" : "created"} course "${formData.name}"`
-        );
         return;
       }
 
@@ -151,12 +144,6 @@ export default function CoursesPage() {
       if (res.type === "opaque" || res.status === 0) {
         console.warn("CORS opaque response, assuming success...");
         setTimeout(fetchCourses, 800);
-        await logActivity(
-          username,
-          editCourse ? "UPDATE" : "CREATE",
-          "Course Service",
-          `${username} ${editCourse ? "updated" : "created"} course "${formData.name}" (CORS bypass)`
-        );
         return;
       }
 
@@ -165,12 +152,6 @@ export default function CoursesPage() {
       if (err.message?.includes("Failed to fetch")) {
         console.warn("CORS blocked, assuming success...");
         setTimeout(fetchCourses, 800);
-        await logActivity(
-          username,
-          editCourse ? "UPDATE" : "CREATE",
-          "Course Service",
-          `${username} ${editCourse ? "updated" : "created"} course "${formData.name}" (CORS bypass)`
-        );
         return;
       }
 
@@ -186,28 +167,16 @@ export default function CoursesPage() {
     if (!window.confirm("Are you sure you want to delete this course?")) return;
 
     try {
-      const res = await fetch(`${GATEWAY_BASE}/courses/${id}/`, {
+      const res = await authFetch(`${GATEWAY_BASE}/courses/${id}/`, {
         method: "DELETE",
       });
 
       if (res.ok || res.status === 204) {
         setCourses((prev) => prev.filter((c) => c.id !== id));
-        await logActivity(
-          username,
-          "DELETE",
-          "Course Service",
-          `${username} deleted course ID ${id}`
-        );
         return;
       } else if (res.status === 0 || res.type === "opaque") {
         console.warn("CORS opaque delete, assuming success...");
         setTimeout(fetchCourses, 800);
-        await logActivity(
-          username,
-          "DELETE",
-          "Course Service",
-          `${username} deleted course ID ${id} (CORS bypass)`
-        );
       } else {
         throw new Error(`Delete failed: ${res.status}`);
       }
@@ -215,12 +184,6 @@ export default function CoursesPage() {
       if (err.message?.includes("Failed to fetch")) {
         console.warn("Delete CORS-blocked, assuming success.");
         setTimeout(fetchCourses, 800);
-        await logActivity(
-          username,
-          "DELETE",
-          "Course Service",
-          `${username} deleted course ID ${id} (CORS bypass)`
-        );
         return;
       }
       console.error("DELETE ERROR:", err);

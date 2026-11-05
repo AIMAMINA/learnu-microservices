@@ -1,11 +1,11 @@
+import { GRAPHQL_URL, authFetch } from "../utils/api";
 import { useEffect, useState } from "react";
 import { Users, BookOpen } from "lucide-react";
 import { Hero } from "../components/Hero";
 import DashboardActivities from "../components/DashboardActivities";
 import ChatbotImage from "../assets/chatbot.png";
 
-const GATEWAY_BASE = "https://gateway-negf.onrender.com";
-const GRAPHQL_URL = `${GATEWAY_BASE}/graphql/`;
+
 
 export function HomePage() {
   const isDark = document.body.classList.contains("dark");
@@ -25,7 +25,7 @@ export function HomePage() {
           }
         `;
 
-        const res = await fetch(GRAPHQL_URL, {
+        const res = await authFetch(GRAPHQL_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),

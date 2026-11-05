@@ -1,7 +1,7 @@
+import { authFetch } from "../utils/api";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, UserPlus } from "lucide-react";
-import { logActivity } from "../utils/activityLogger"; // ✅ ajouté
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -26,8 +26,8 @@ export function RegisterPage() {
     }
 
     try {
-      const response = await fetch(
-        "https://auth-service-ojes.onrender.com/auth/auth/register/",
+      const response = await authFetch(
+        "/auth/register/",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -43,13 +43,6 @@ export function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // ✅ Log Activity vers ActivityService
-        await logActivity(
-          username,
-          "REGISTER",
-          "Auth Service",
-          `${username} successfully created an account`
-        );
 
         setSuccess("✅ Account created successfully! Redirecting...");
         setTimeout(() => navigate("/login"), 1800);
